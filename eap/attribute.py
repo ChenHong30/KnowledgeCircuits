@@ -398,5 +398,5 @@ def attribute(model: HookedTransformer, graph: Graph, dataloader: DataLoader, me
         
     scores = scores.cpu().numpy()
 
-    for edge in tqdm(graph.edges.values(), total=len(graph.edges)):
+    for edge in graph.edges.values():
         edge.score = scores[graph.forward_index(edge.parent, attn_slice=False), graph.backward_index(edge.child, qkv=edge.qkv, attn_slice=False)]
