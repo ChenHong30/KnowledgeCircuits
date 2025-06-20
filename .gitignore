@@ -21,3 +21,6 @@ __pycache__/
 *results
 *output
 *factual_results
+
+*.json
+*.png
