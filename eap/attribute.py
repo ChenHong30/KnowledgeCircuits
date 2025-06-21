@@ -398,5 +398,8 @@ def attribute(model: HookedTransformer, graph: Graph, dataloader: DataLoader, me
         
     scores = scores.cpu().numpy()
 
+    flat = scores.flatten()
+    idx  = flat.argsort()[::-1][:20]
+
     for edge in graph.edges.values():
         edge.score = scores[graph.forward_index(edge.parent, attn_slice=False), graph.backward_index(edge.child, qkv=edge.qkv, attn_slice=False)]

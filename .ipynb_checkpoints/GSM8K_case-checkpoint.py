@@ -56,10 +56,10 @@ def get_component_logits(logits, model, answer_token, top_k=10):
     logger.info(
         f"Performance on answer token: Rank: {correct_rank: <8} Logit: {logits[-1, answer_token].item():5.2f} Prob: {token_probs[answer_token].item():6.2%} Token: |{answer_str_token}|"
     )
-    for i in range(top_k):
-        logger.info(
-            f"Top {i}th token. Logit: {logits[-1, sorted_token_values[i]].item():5.2f} Prob: {sorted_token_probs[i].item():6.2%} Token: |{model.to_string(sorted_token_values[i])}|"
-        )
+    # for i in range(top_k):
+    #     print(
+    #         f"Top {i}th token. Logit: {logits[-1, sorted_token_values[i]].item():5.2f} Prob: {sorted_token_probs[i].item():6.2%} Token: |{model.to_string(sorted_token_values[i])}|"
+    #     )
     # rprint(f"[b]Ranks of the answer tokens:[/b] {answer_ranks}")
 
 def get_hf_response(model, tokenizer, prompt):
@@ -82,9 +82,8 @@ def main():
     hf_tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, local_files_only=True)
 
     model = transformer_lens.HookedTransformer.from_pretrained(
-        "Qwen/Qwen2.5-1.5B", # 使用Qwen2风格
+        "Qwen/Qwen2-1.5B", # 使用Qwen2风格
         hf_model=hf_model, 
-        tokenizer=hf_tokenizer,
         device="cuda", 
         fold_ln=False, 
         center_writing_weights=False, 
@@ -96,7 +95,7 @@ def main():
 
     # --------------------------- 测试数据 ---------------------------
     clean_subject = '48'
-    corrupted_subject = 'many'
+    corrupted_subject = '50'
     
     clean = f"""
     <｜begin▁of▁sentence｜>You are a helpful assistant. You should generate answer as short as possible.
@@ -125,8 +124,8 @@ def main():
 
     for token_num in range(0, min(len(clean_token_ids), 256)):
         logger.info(f"---------------------------------- Step {token_num + 1} / {min(len(clean_token_ids), 256)} ----------------------------------")
-        past_text_clean = hf_tokenizer.decode(clean_token_ids[:token_num], skip_special_tokens=False)
-        past_text_corrupted = hf_tokenizer.decode(corrupted_token_ids[:token_num], skip_special_tokens=False)
+        past_text_clean = hf_tokenizer.decode(clean_token_ids[:token_num], skip_special_tokens=True)
+        past_text_corrupted = hf_tokenizer.decode(corrupted_token_ids[:token_num], skip_special_tokens=True)
         step_prompt_clean = clean + past_text_clean
         step_prompt_corrupted = corrupted + past_text_corrupted
         # 当前步的 label
@@ -138,11 +137,10 @@ def main():
 
         g = Graph.from_model(model)
         # Attribute using the model, graph, clean / corrupted data and labels, as well as a metric
-        attribute(model, g, data, partial(direct_logit, loss=True, mean=True), method='EAP-IG-case', ig_steps=100)
+        attribute(model, g, data, partial(logit_diff, loss=True, mean=True), method='EAP-IG-case', ig_steps=100)
         # attribute(model, g, data, partial(direct_logit, loss=True, mean=True), method='EAP-IG-case', ig_steps=30)
         # attribute(model, g, dataloader, partial(logit_diff, loss=True, mean=True), method='EAP-IG', ig_steps=30)
-
-        g.apply_topn(3000, absolute=True)
+        g.apply_topn(5000, absolute=True)
         g.prune_dead_nodes()
 
         g.to_json(f'cot_graph/graph_{token_num}.json')

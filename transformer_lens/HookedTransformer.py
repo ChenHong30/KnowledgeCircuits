@@ -168,6 +168,7 @@ class HookedTransformer(HookedRootModule):
                         trust_remote_code=self.cfg.trust_remote_code,
                         use_fast=use_fast,
                         token=huggingface_token if len(huggingface_token) > 0 else None,
+                        local_files_only=True # 暂时切断网络
                     ),
                     default_padding_side=default_padding_side,
                 )
