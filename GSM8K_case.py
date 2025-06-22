@@ -31,11 +31,11 @@ logger = logging.getLogger(__name__)
 
 # 函数定义
 def pad_to_same_token_length(s1, s2, model):
-    # 不断补空格，直到token长度一样
+    pad_token = model.tokenizer.pad_token
     while len(model.to_str_tokens(s1)) < len(model.to_str_tokens(s2)):
-        s1 += ' '
+        s1 = pad_token + s1
     while len(model.to_str_tokens(s2)) < len(model.to_str_tokens(s1)):
-        s2 += ' '
+        s2 = pad_token + s1
     return s1, s2
 
 def get_component_logits(logits, model, answer_token, top_k=10):
@@ -90,13 +90,14 @@ def main():
         center_writing_weights=False, 
         center_unembed=False)
 
-    model.cfg.use_split_qkv_input = False
+    model.cfg.ungroup_grouped_query_attention = True
+    model.cfg.use_split_qkv_input = True
     model.cfg.use_attn_result = True
     model.cfg.use_hook_mlp_in = True
 
     # --------------------------- 测试数据 ---------------------------
     clean_subject = '48'
-    corrupted_subject = 'many'
+    corrupted_subject = '10'
     
     clean = f"""
     <｜begin▁of▁sentence｜>You are a helpful assistant. You should generate answer as short as possible.
@@ -138,12 +139,16 @@ def main():
 
         g = Graph.from_model(model)
         # Attribute using the model, graph, clean / corrupted data and labels, as well as a metric
-        attribute(model, g, data, partial(logit_diff, loss=True, mean=True), method='EAP-IG-case', ig_steps=100)
+        attribute(model, g, data, partial(logit_diff, loss=True, mean=True), method='EAP-IG-case', ig_steps=30)
         # attribute(model, g, data, partial(direct_logit, loss=True, mean=True), method='EAP-IG-case', ig_steps=30)
         # attribute(model, g, dataloader, partial(logit_diff, loss=True, mean=True), method='EAP-IG', ig_steps=30)
 
-        g.apply_topn(3000, absolute=True)
+        g.apply_topn(30000, absolute=True)
         g.prune_dead_nodes()
+
+        # 在这里添加检查
+        if not g.nodes['logits'].in_graph:
+            logger.info(f"---------------------------------- EMPTY CIRCUIT DETECTED at step {token_num + 1} ----------------------------------")
 
         g.to_json(f'cot_graph/graph_{token_num}.json')
 
