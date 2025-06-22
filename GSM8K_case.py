@@ -169,6 +169,10 @@ def main():
         
         current_sentence = model.to_string(generated_tokens)
         logger.info(f"Current sentence: {current_sentence}")
+        # 检测是否生成结束
+        if next_token_id == hf_tokenizer.eos_token_id:
+            logger.info("EOS token generated. Stopping generation.")
+            break
     
     logger.info("Total Time: %.2fs", time.time() - case_time)
 
