@@ -26,3 +26,5 @@ __pycache__/
 *.png
 *.log
 KnowledgeCircuits/.ipynb_checkpoints/
+GSM8K_data_generation.py
+*.csv

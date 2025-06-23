@@ -31,7 +31,8 @@ def get_circuit_logits(model: HookedTransformer, graph: Graph, data: tuple, prun
 
     empty_circuit = not graph.nodes['logits'].in_graph
     if empty_circuit:
-        print("Warning: empty circuit")
+        # print("Warning: empty circuit")
+        pass
 
     # we construct the in_graph matrix, which is a binary matrix indicating which edges are in the circuit
     # we invert it so that we add in the corrupting activation differences for edges not in the circuit

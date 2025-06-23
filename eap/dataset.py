@@ -55,3 +55,35 @@ class EAPDataset(Dataset):
     
     def to_dataloader(self, batch_size: int):
         return DataLoader(self, batch_size=batch_size, collate_fn=partial(collate_EAP, task=self.task))
+
+import pandas as pd
+from torch.utils.data import Dataset, DataLoader
+from typing import Optional
+from functools import partial
+
+class COT_EAP_Dataset(Dataset):
+    def __init__(self, filename: str, max_samples: Optional[int] = None):
+        # 载入CSV
+        nrows = max_samples if max_samples is not None else None
+        self.df = pd.read_csv(filename, nrows=nrows)
+        expected_columns = {'clean', 'corrupted', 'clean_subject', 'corrupted_subject'}
+        if not expected_columns.issubset(self.df.columns):
+            raise ValueError(f"Input CSV must contain columns: {expected_columns}")
+    
+    def __len__(self):
+        return len(self.df)
+    
+    def shuffle(self):
+        self.df = self.df.sample(frac=1).reset_index(drop=True)
+
+    def head(self, n: int):
+        self.df = self.df.head(n).reset_index(drop=True)
+    
+    def __getitem__(self, index):
+        row = self.df.iloc[index]
+        # 默认返回四列内容
+        return row['clean'], row['corrupted'], row['clean_subject'], row['corrupted_subject'], row['answer']
+    
+    def to_dataloader(self, batch_size: int, shuffle: bool = False, **kwargs):
+        # 提供和原始类似的dataloader方法
+        return DataLoader(self, batch_size=batch_size, shuffle=shuffle, **kwargs)
